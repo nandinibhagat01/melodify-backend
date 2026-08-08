@@ -14,4 +14,10 @@ router.get(
   albumController.getAlbumById,
 );
 
+router.put(
+  "/:albumId",
+  authMiddleware.authArtist,
+  albumController.addMusicToAlbum,
+);
+
 module.exports = router;
