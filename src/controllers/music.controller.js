@@ -1,3 +1,4 @@
+const albumModel = require("../models/album.model");
 const musicModel = require("../models/music.model");
 const { uploadFile } = require("../services/storage.service");
 const jwt = require("jsonwebtoken");
@@ -58,7 +59,7 @@ async function updateMusic(req, res) {
 
   if (music.artist.toString() !== req.user.id) {
     return res.status(403).json({
-      message: "You are not authorised to upadte this music",
+      message: "You are not authorised to upadate this music",
     });
   }
   music.title = title;
@@ -72,4 +73,38 @@ async function updateMusic(req, res) {
   });
 }
 
-module.exports = { createMusic, getAllMusics, getMusicById, updateMusic };
+async function deleteMusic(req, res) {
+  const musicId = req.params.musicId;
+  const music = await musicModel.findById(musicId);
+
+  if (!music) {
+    return res.status(404).json({
+      message: "Music not found",
+    });
+  }
+
+  if (music.artist.toString() !== req.user.id) {
+    return res.status(403).json({
+      message: "You are not authorized to delete this music",
+    });
+  }
+
+  await musicModel.findByIdAndDelete(musicId);
+
+  await albumModel.updateMany(
+    { musics: musicId },
+    { $pull: { musics: musicId } },
+  );
+
+  return res.status(200).json({
+    message: "Music Deleted",
+  });
+}
+
+module.exports = {
+  createMusic,
+  getAllMusics,
+  getMusicById,
+  updateMusic,
+  deleteMusic,
+};
