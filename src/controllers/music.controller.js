@@ -1,10 +1,9 @@
-const albumModel = require("../models/album.model");
 const musicModel = require("../models/music.model");
 const { uploadFile } = require("../services/storage.service");
 const jwt = require("jsonwebtoken");
 
 async function createMusic(req, res) {
-  const { title } = req.body;
+  const { title, details } = req.body;
   const file = req.file;
 
   const result = await uploadFile(file.buffer.toString("base64"));
@@ -12,6 +11,7 @@ async function createMusic(req, res) {
   const music = await musicModel.create({
     uri: result.url,
     title,
+    details,
     artist: req.user.id,
   });
 
@@ -21,27 +21,8 @@ async function createMusic(req, res) {
       id: music._id,
       uri: music.uri,
       title: music.title,
+      details: music.details,
       artist: music.artist,
-    },
-  });
-}
-
-async function createAlbum(req, res) {
-  const { title, musics } = req.body;
-
-  const album = await albumModel.create({
-    title,
-    artist: req.user.id,
-    musics: musics,
-  });
-
-  res.status(201).json({
-    message: "Album created successfully",
-    album: {
-      id: album._id,
-      title: album.title,
-      artist: album.artist,
-      musics: album.musics,
     },
   });
 }
@@ -55,34 +36,40 @@ async function getAllMusics(req, res) {
   });
 }
 
-async function getAllAlbums(req, res) {
-  const albums = await albumModel
-    .find()
-    .select("title artist")
-    .populate("artist", "username email");
+async function getMusicById(req, res) {
+  const musicId = req.params.musicId;
+  const music = await musicModel.findById(musicId);
   res.status(200).json({
-    message: "Albums fetched successfully",
-    albums: albums,
+    message: "Music fetched successfully",
+    music: music,
   });
 }
 
-async function getAlbumById(req, res) {
-  const albumId = req.params.albumId;
-  const album = await albumModel
-    .findById(albumId)
-    .populate("artist", "username email")
-    .populate("musics");
+async function updateMusic(req, res) {
+  const musicId = req.params.musicId;
+  const { title, details } = req.body;
+  const music = await musicModel.findById(musicId);
 
-  return res.status(200).json({
-    message: "Album fetched successfully",
-    album: album,
+  if (!music) {
+    return res.status(404).json({
+      message: "Music not found",
+    });
+  }
+
+  if (music.artist.toString() !== req.user.id) {
+    return res.status(403).json({
+      message: "You are not authorised to upadte this music",
+    });
+  }
+  music.title = title;
+  music.details = details;
+
+  await music.save();
+
+  res.status(200).json({
+    message: "Music updated successfully",
+    music,
   });
 }
 
-module.exports = {
-  createMusic,
-  createAlbum,
-  getAllMusics,
-  getAllAlbums,
-  getAlbumById,
-};
+module.exports = { createMusic, getAllMusics, getMusicById, updateMusic };
