@@ -88,6 +88,10 @@ The API is organized into:
 
 All APIs have been tested using **Postman**.
 
+## 🌐 Deployed API
+
+https://melodify-backend-nwms.onrender.com
+
 ## 👩‍💻 Author
 
 **Nandini Bhagat**
